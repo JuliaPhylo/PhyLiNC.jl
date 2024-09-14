@@ -100,18 +100,18 @@ amount of rate variation across sites, branch lengths and inheritance γs.
 This search strategy is run `nruns` times, and the best of the `nruns`
 networks is returned.
 
-Return a [`StatisticalSubstitutionModel`](@ref) object, say `obj`, which
+Return a `StatisticalSubstitutionModel` object, say `obj`, which
 contains the estimated network in `obj.net`.
 
 Required arguments:
 - `net`: a network or tree of type `HybridNetwork`, to serve as a starting point
   in the search for the best network.
-  Newick strings can be converted to this format with [`readTopology`] (@ref).
+  Newick strings can be converted to this format with `readTopology`.
 - `fastafile`: file with the sequence data in FASTA format. Ambiguous states are
   treated as missing.
 - `substitutionModel`: A symbol indicating which substitution model is used.
-  Choose `:JC69` [`JC69`](@ref) for the Jukes-Cantor model or `:HKY85` for
-  the Hasegawa, Kishino, Yano model [`HKY85`](@ref).
+  Choose `:JC69` for the Jukes-Cantor model or `:HKY85` for
+  the Hasegawa, Kishino, Yano model.
 
 The length of the edge below a reticulation is not identifiable.
 Therefore, phyLiNC estimates the canonical version of the network: with
@@ -133,7 +133,7 @@ Optional arguments (default value in parenthesis):
 - integer (4) for the number of categories to use in estimating
   evolutionary rates using a discretized gamma model. When allowing for rate
   variation, four categories is standard. With 1 category,
-  no rate variation is assumed. See [`RateVariationAcrossSites`] (@ref).
+  no rate variation is assumed. See `PhyloTraits.RateVariationAcrossSites`.
 
 Main optional keyword arguments (default value in parenthesis):
 - `speciesfile` (""): path to a csv file with samples in rows and two columns:
@@ -580,6 +580,8 @@ According to user-given options, also check for the absence of
 3-cycles and/or hybrid ladders.
 
 ```jldoctest
+julia> using PhyloNetworks
+
 julia> maxhybrid = 3;
 
 julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
@@ -587,7 +589,7 @@ julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1
 julia> preorder!(net) # for correct unzipping in checknetwork_LiNC!
 
 julia> PhyLiNC.checknetwork_LiNC!(net, maxhybrid, true, true)
-HybridNetwork, Rooted Network
+PhyloNetworks.HybridNetwork, Rooted Network
 8 edges
 8 nodes: 4 tips, 1 hybrid nodes, 3 internal tree nodes.
 tip labels: A, B, C, D
@@ -946,7 +948,7 @@ may create a hybrid ladder. It happens if there is a reticulation above a
 W structure (tree node whose children are both hybrid nodes).
 This creates a problem if the user asked for `nohybridladder`:
 this request may not be met.
-fixit: In future, we could check for this case and prevent it.
+fixit: In a future version, check for this case and prevent it.
 
 For a description of arguments, see [`phyLiNC`](@ref).
 Called by [`optimizestructure!`](@ref), which does some checks.
@@ -1027,7 +1029,7 @@ end
                     γcache::CacheGammaLiNC, lcache::CacheLengthLiNC)
 
 Randomly chooses a minor hybrid edge and tries to flip its direction (that is,
-reverse the direction of gene flow) using [`fliphybrid!`](@ref).
+reverse the direction of gene flow) using `PhyloNetworks.fliphybrid!`.
 If the flip fails, it looks for the next minor hybrid edge. If all minor edges
 fail, tries to flip major edges in random order.
 
@@ -1114,6 +1116,8 @@ Warning:
 Does not update the likelihood.
 
 ```jldoctest
+julia> using PhyloNetworks
+
 julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));
@@ -1236,7 +1240,7 @@ end
 
 Calibrate branch lengths in `net` by minimizing the mean squared error
 between the JC-adjusted pairwise distance between taxa, and network-predicted
-pairwise distances, using [`calibrateFromPairwiseDistances!`](@ref).
+pairwise distances, using `PhyloNetworks.calibrateFromPairwiseDistances!`.
 `siteweight[k]` gives the weight of site (or site pattern) `k` (default: all 1s).
 Note: the network is not "unzipped". PhyLiNC unzips reticulations later.
 
@@ -1484,6 +1488,8 @@ Assumptions:
 - branch lengths are at or above the lower bound, and definitely non-negative.
 
 ```jldoctest
+julia> using PhyloNetworks
+
 julia> net = readTopology("(((A:2.0,(B:0.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));
@@ -1669,8 +1675,8 @@ At the end: hybrid edges with γ=0 are deleted (if any).
 Output: true if reticulations have been deleted, false otherwise.
 If true, `updateSSM!` needs to be called afterwards, with constraints if any.
 (Constraints are not known here).
-Before updating the displayed trees in the SSM, [`shrink2cycles!`](@ref) or
-[`shrink3cycles!`](@ref) could be called, if desired, despite the (slight?)
+Before updating the displayed trees in the SSM, `PhyloNetworks.shrink2cycles!` or
+`PhyloNetworks.shrink3cycles!` could be called, if desired, despite the (slight?)
 change in likelihood that this shrinking would cause.
 2/3-cycles are *not* shrunk here.
 """
@@ -1731,6 +1737,8 @@ Assumptions:
 - no in-coming polytomy: a node has 0, 1 or 2 parents, no more
 
 ```jldoctest
+julia> using PhyloNetworks
+
 julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));

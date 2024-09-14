@@ -1,3 +1,4 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 PhyLiNC = "cc80c543-84d2-42fd-beda-26c7d0f745cc"
+PhyloNetworks = "33ad39ac-ed31-50eb-9b15-43d0656eaa72"
