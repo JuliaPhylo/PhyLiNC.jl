@@ -1,17 +1,14 @@
 module PhyLiNC
 
-using BioSequences
-using BioSymbols
-using CSV
-using DataFrames # innerjoin new in v0.21
-using Distributions #for RateVariationAcrossSites
-using FASTX
-using GLM
+using Dates
+using Distributed
+using Distributions # e.g. for sample, aweights, Geometric
 using LinearAlgebra: mul!, lmul!
+using Missings
 using NLopt
 using PhyloNetworks
 using PhyloNetworks: Edge, Node, TopologyConstraint, fliphybrid!,
-        deletehybridedge!, addhybridedge!
+        deletehybridedge!, addhybridedge!, moveroot!
 using PhyloTraits
 using PhyloTraits: StatisticalSubstitutionModel, P!, update_logtrans,
         discrete_corelikelihood_trait!, discrete_corelikelihood!,
@@ -19,15 +16,10 @@ using PhyloTraits: StatisticalSubstitutionModel, P!, update_logtrans,
 using Random
 using StaticArrays
 using StatsAPI: StatsAPI, loglikelihood
-using StatsBase
-using StatsFuns # logsumexp, logaddexp, log2π, various cdf
-using StatsModels # re-exported by GLM. for ModelFrame ModelMatrix Formula etc
+using StatsBase: fit!
 
 const PN = PhyloNetworks
 const SSM = PhyloTraits.StatisticalSubstitutionModel
-
-import Base: show
-import StatsAPI: fit!
 
 export phyLiNC
 

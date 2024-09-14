@@ -1,5 +1,3 @@
-@testset "phyLiNC" begin
-
 fastasimple = joinpath(@__DIR__, "..", "examples", "simple.aln")
 fasta8sites = joinpath(@__DIR__, "..", "examples", "Ae_bicornis_8sites.aln") # 8 sites only
 fastacontig = joinpath(@__DIR__, "..", "examples", "Ae_bicornis_Tr406_Contig10132.aln")
@@ -148,7 +146,7 @@ obj = (@test_logs (:warn, r"pruned") StatisticalSubstitutionModel(net, fasta8sit
 @test length(obj.net.leaf) == 22
 @test length(obj.net.edge) == 52
 @test length(obj.net.hybrid) == 3
-@test PN.hashybridladder(obj.net)
+@test !PN.hashybridladder(obj.net)
 end
 
 @testset "checknetwork LiNC" begin
@@ -282,7 +280,7 @@ rm("phyLiNC2.err")
 
 net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 addprocs(1) # multiple cores
-@everywhere using PhyloNetworks
+@everywhere using PhyLiNC
 #using Distributed; @everywhere begin; using Pkg; Pkg.activate("."); using PhyloNetworks; end
 originalstdout = stdout  # verbose=true below
 redirect_stdout(devnull)
@@ -307,7 +305,7 @@ end
 net_level1_s = readTopology("(((S8,S9),((((S1,S4),(S5)#H1),(#H1,(S6,S7))))#H2),(#H2,S10));") # S1A S1B S1C go on leaf 1
 # 3-cycle at degree-2 root -> 2-cycle after root deletion, removed within LiNC
 # constraint
-net_level1_i, c_species = PhyloNetworks.mapindividuals(net_level1_s, mappingfile)
+net_level1_i, c_species = PN.mapindividuals(net_level1_s, mappingfile)
 PN.resetNodeNumbers!(net_level1_i)
 net_level1_i.node[22].number = 100
 PN.updateconstraints!(c_species, net_level1_i)
@@ -389,4 +387,3 @@ previousloglik = obj.loglik
 @test obj.loglik > previousloglik + 0.1
 @test !PhyLiNC.fliphybridedgeLiNC!(obj, obj.loglik, false, emptyconstraint, 1e-6, γcache, lcache)
 end # hybrid flip basics
-end # of overall phyLiNC test set

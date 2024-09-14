@@ -1,20 +1,35 @@
-# any change to these constants must be documented in phyLiNC!
+"""
+Default tuning parameters for the optimization routine.
+any change to these constants must be documented in the docstring for phyLiNC !
+
+- `likAbsAddHybLiNC`: log-likelihood improvement required to retain a hybrid.
+   Greater values would raise the standard for newly-proposed hybrids,
+   leading to fewer proposed hybrids accepted during the search
+- `likAbsDelHybLiNC`: log-likelihood decrease allowed when removing a hybrid.
+   Lower (more negative) values of lead to more hybrids removed during the search
+
+Parameters to optimize branch lengths:
+- `BLmin`, `BLmax`
+- `fAbsBL` etc: default tolerance values to stop the optimization
+"""
 const moveweights_LiNC = Distributions.aweights([0.6, 0.2, 0.05, 0.05, 0.1])
 const movelist_LiNC = ["nni", "addhybrid", "deletehybrid", "fliphybrid", "root"]
-const likAbsAddHybLiNC = 0.0 #= loglik improvement required to retain a hybrid.
-  Greater values would raise the standard for newly-proposed hybrids,
-  leading to fewer proposed hybrids accepted during the search =#
-const likAbsDelHybLiNC = 0.0 #= loglik decrease allowed when removing a hybrid
-  lower (more negative) values of lead to more hybrids removed during the search =#
+const likAbsAddHybLiNC = 0.0
+const likAbsDelHybLiNC = 0.0
+# same as in PhyloTraits
 const alphaRASmin = 0.02
 const alphaRASmax = 50.0
 const pinvRASmin = 1e-8
 const pinvRASmax = 0.99
-const kappamax = 20.0
+# optimization of branch lengths
 const BLmin = 1.0e-8
-    # min_branch_length = 1.0e-6 in most cases in IQ-TREE v2.0 (see main/phyloanalysis.cpp)
+# min_branch_length = 1.0e-6 in most cases in IQ-TREE v2.0 (see main/phyloanalysis.cpp)
 const BLmax = 10.0
-    # max_branch_length = 10.0 used in IQ-TREE v2.0 (see utils/tools.cpp)
+# max_branch_length = 10.0 used in IQ-TREE v2.0 (see utils/tools.cpp)
+const fAbsBL = 1e-10
+const fRelBL = 1e-12
+const xAbsBL = 1e-10
+const xRelBL = 1e-10
 
 """
     CacheGammaLiNC
@@ -190,7 +205,7 @@ function phyLiNC(
 )
     # create constraints and new network if speciesfile
     if !isempty(speciesfile)
-        net, constraints = mapindividuals(net, speciesfile)
+        net, constraints = PN.mapindividuals(net, speciesfile)
     else
         net = deepcopy(net)
         constraints = TopologyConstraint[]
@@ -870,7 +885,7 @@ function addhybridedgeLiNC!(
         end
     end
     # unzip only at new node and its child edge
-    unzipat_canonical!(newhybridnode, getchildedge(newhybridnode))
+    PN.unzipat_canonical!(newhybridnode, getchildedge(newhybridnode))
     updateSSM!(obj) #, true; constraints=constraints)
     optimizelocalgammas_LiNC!(obj, newhybridedge, ftolAbs, γcache)
     if newhybridedge.gamma == 0.0

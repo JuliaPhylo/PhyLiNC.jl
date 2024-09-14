@@ -2,17 +2,11 @@ using PhyLiNC
 using Test
 using Aqua
 
-using BioSymbols
-using CSV
-using DataFrames
 using Distributed
 using PhyloNetworks
 using PhyloTraits
 using PhyloTraits: StatisticalSubstitutionModel, discrete_corelikelihood!
 using Random
-using StaticArrays # for rate substitution matrices
-using Statistics
-using StatsBase # for aic etc., stderr
 
 const PN = PhyloNetworks
 
