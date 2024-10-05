@@ -229,7 +229,7 @@ function phyLiNC(
        Warning: need to call updateSSM after using checknetwork_LiNC =#
     updateSSM!(obj, true; constraints=constraints)
     if any(e.length < 0.0 for e in obj.net.edge) # check for missing branch lengths
-        startingBL!(obj.net, obj.trait, obj.siteweight)
+        PN.startingBL!(obj.net, obj.trait, obj.siteweight)
     end
     PN.unzip_canonical!(obj.net)
     for e in obj.net.edge # bring branch lengths inside bounds
@@ -1231,77 +1231,6 @@ function updateSSM_root!(obj::SSM)
         # After re-extracting, the displayed trees come in the same order as before:
         # no need to update the priorltw
     end
-end
-
-"""
-    startingBL!(net::HybridNetwork,
-                trait::AbstractVector{Vector{Union{Missings.Missing,Int}}},
-                siteweight=ones(length(trait[1]))::AbstractVector{Float64})
-
-Calibrate branch lengths in `net` by minimizing the mean squared error
-between the JC-adjusted pairwise distance between taxa, and network-predicted
-pairwise distances, using `PhyloNetworks.calibrateFromPairwiseDistances!`.
-`siteweight[k]` gives the weight of site (or site pattern) `k` (default: all 1s).
-Note: the network is not "unzipped". PhyLiNC unzips reticulations later.
-
-Assumptions:
-
-- all species have the same number of traits (sites): `length(trait[i])` constant
-- `trait[i]` is for leaf with `node.number = i` in `net`, and
-  `trait[i][j] = k` means that leaf number `i` has state index `k` for trait `j`.
-  These indices are those used in a substitution model:
-  kth value of `getlabels(model)`.
-- Hamming distances are < 0.75 with four states, or < (n-1)/n for n states.
-  If not, all pairwise hamming distances are scaled by `.75/(m*1.01)` where `m`
-  is the maximum observed hamming distance, to make them all < 0.75.
-"""
-function startingBL!(
-    net::HybridNetwork,
-    trait::AbstractVector{Vector{Union{Missings.Missing,Int}}},
-    siteweight=ones(length(trait[1]))::AbstractVector{Float64}
-)
-    nspecies = net.numTaxa
-    M = zeros(Float64, nspecies, nspecies) # pairwise distances initialized to 0
-    # count pairwise differences, then multiply by pattern weight
-    ncols = length(trait[1]) # assumption: all species have same # columns
-    length(siteweight) == ncols ||
-      error("$(length(siteweight)) site weights but $ncols columns in the data")
-    for i in 2:nspecies
-        species1 = trait[i]
-        for j in 1:(i-1)
-            species2 = trait[j]
-            for col in 1:ncols
-                if !(ismissing(species1[col]) || ismissing(species2[col])) &&
-                    (species1[col] != species2[col])
-                    M[i, j] += siteweight[col]
-                end
-            end
-            M[j,i] = M[i,j]
-        end
-    end
-    Mp = M ./ sum(siteweight) # to get proportion of sites, for each pair
-
-    # estimate pairwise evolutionary distances using extended Jukes Cantor model
-    nstates = mapreduce(x -> maximum(skipmissing(x)), max, trait)
-    maxdist = (nstates-1)/nstates
-    Mp[:] = Mp ./ max(maxdist, maximum(Mp*1.01)) # values in [0,0.9901]: log(1-Mp) well defined
-    dhat = - maxdist .* log.( 1.0 .- Mp)
-
-    taxonnames = [net.leaf[i].name for i in sortperm([n.number for n in net.leaf])]
-    # taxon names: to tell the calibration that row i of dhat if for taxonnames[i]
-    # ASSUMPTION: trait[i][j] = trait j for taxon at node number i: 'node.number' = i
-    calibrateFromPairwiseDistances!(net, dhat, taxonnames,
-        forceMinorLength0=true, ultrametric=false)
-        # force minor length to 0 to avoid non-identifiability at zippers
-        # works well if the true (or "the" best-fit) length of the minor parent
-        # edge is less than the true length of the parent edge.
-        # (zips all the way up instead of unzipping all the way down, as we do when the child edge = 0)
-    for e in net.edge # avoid starting at the boundary
-        if e.length < 1.0e-10
-            e.length = 0.0001
-        end
-    end
-    return net
 end
 
 #--------------- optimization of branch lengths --------------#

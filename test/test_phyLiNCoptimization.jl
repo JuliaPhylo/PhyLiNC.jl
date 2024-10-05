@@ -38,7 +38,8 @@ end
 
 @testset "optimize local BL & gammas, complex network and 8 sites" begin
 Random.seed!(98)
-dna_dat, dna_weights = readfastatodna(fasta8sites, true); # 22 species, 3 hybrid nodes, 103 edges
+# dna_dat, dna_weights = readfastatodna(fasta8sites, true);
+# 22 species, 3 hybrid nodes, 103 edges
 net = readTopology("((((((((((((((Ae_caudata_Tr275,Ae_caudata_Tr276),Ae_caudata_Tr139))#H1,#H2),(((Ae_umbellulata_Tr266,Ae_umbellulata_Tr257),Ae_umbellulata_Tr268),#H1)),((Ae_comosa_Tr271,Ae_comosa_Tr272),(((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402),Ae_uniaristata_Tr404))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),(Ae_tauschii_Tr180,Ae_tauschii_Tr125)),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),(Ae_sharonensis_Tr265,Ae_sharonensis_Tr264)),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),((Ae_searsii_Tr164,Ae_searsii_Tr165),Ae_searsii_Tr161)))#H2,#H4))),(((T_boeoticum_TS8,(T_boeoticum_TS10,T_boeoticum_TS3)),T_boeoticum_TS4),((T_urartu_Tr315,T_urartu_Tr232),(T_urartu_Tr317,T_urartu_Tr309)))),(((((Ae_speltoides_Tr320,Ae_speltoides_Tr323),Ae_speltoides_Tr223),Ae_speltoides_Tr251))H3,((((Ae_mutica_Tr237,Ae_mutica_Tr329),Ae_mutica_Tr244),Ae_mutica_Tr332))#H4))),Ta_caputMedusae_TB2),S_vavilovii_Tr279),Er_bonaepartis_TB1),H_vulgare_HVens23);");
 PN.fuseedgesat!(93, net)
 obj = (@test_logs (:warn, r"taxa with no data") StatisticalSubstitutionModel(net, fasta8sites, :JC69))
@@ -64,7 +65,7 @@ PhyLiNC.checknetwork_LiNC!(obj.net, 3, true, true, emptyconstraint)
 # checknetwork removes degree-2 nodes (including root) and 2- and 3-cycles
 # and requires that the network is preordered.
 PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
-PhyLiNC.startingBL!(obj.net, obj.trait, obj.siteweight)
+PN.startingBL!(obj.net, obj.trait, obj.siteweight)
 PN.unzip_canonical!(obj.net)
 ## Local BL
 lcache = PhyLiNC.CacheLengthLiNC(obj, 1e-6,1e-6,1e-2,1e-3, 5)
@@ -157,15 +158,6 @@ PhyLiNC.checknetwork_LiNC!(tree, 1, true, true)
 @test all(length(n.edge) != 2 for n in tree.node) # no nodes of degree 2
 net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
 @test_throws ErrorException PhyLiNC.checknetwork_LiNC!(net, 0, true, true)
-
-netstr = "(#H2:0.1::0.2,((C:0.2,((B:0.3)#H1:0.4)#H2:0.5::0.8):0.6,(#H1:0.7,((A1:0.8)#H3:0.01,(A2:0.9,#H3:0.02):0.03):1.0):1.1):1.2,O:1.3);"
-net = readTopology(netstr)
-# 2 reticulation in a hybrid ladder, and another isolated reticulation
-undoinfo = PN.unzip_canonical!(net)
-@test all(getchildedge(h).length == 0.0 for h in net.hybrid) # unzipped
-@test writeTopology(net, round=true) == "(#H2:0.8::0.2,((C:0.2,((B:0.0)#H1:0.0)#H2:1.2::0.8):0.6,(#H1:1.0,((A1:0.0)#H3:0.81,(A2:0.9,#H3:0.82):0.03):1.0):1.1):1.2,O:1.3);"
-PhyloNetworks.rezip_canonical!(undoinfo...)
-@test writeTopology(net, round=true) == netstr
 end
 
 @testset "update root in SSM displayed trees" begin
@@ -212,7 +204,7 @@ net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69; maxhybrid=1)
 PhyLiNC.checknetwork_LiNC!(obj.net, 1, true, true)
 PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
-PhyLiNC.startingBL!(obj.net, obj.trait, obj.siteweight)
+PN.startingBL!(obj.net, obj.trait, obj.siteweight)
 PN.unzip_canonical!(obj.net)
 writeTopology(obj.net)
 =#
@@ -245,7 +237,7 @@ for nohybridladder in [true, false]
     obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
     PhyLiNC.checknetwork_LiNC!(obj.net, 1, no3cycle, nohybridladder)
     PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
-    PhyLiNC.startingBL!(obj.net, obj.trait, obj.siteweight)
+    PN.startingBL!(obj.net, obj.trait, obj.siteweight)
     PN.unzip_canonical!(obj.net)
     writeTopology(obj.net) # result hard-coded above. independent of nohybridladder
     =#
@@ -323,7 +315,7 @@ PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
 
 #= assign good starting branch lengths: find them outside of tests
 for e in obj.net.edge e.length = 0.1; end # was -1.0 for missing
-PhyLiNC.startingBL!(obj.net, obj.trait, obj.siteweight)
+PN.startingBL!(obj.net, obj.trait, obj.siteweight)
 PN.unzip_canonical!(obj.net)
 print([e.length for e in obj.net.edge])
 =#
