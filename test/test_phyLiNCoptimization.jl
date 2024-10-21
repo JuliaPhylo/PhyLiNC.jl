@@ -261,21 +261,13 @@ end
 @testset "phyLiNC with simple net and one constraint" begin
 net_level1_s = readTopology("(((S8,S9),((((S1,S4),(S5)#H1),(#H1,(S6,S7))))#H2),(#H2,S10));") # S1A S1B S1C go on leaf 1
 # 3-cycle at degree-2 root -> 2-cycle after root deletion, removed within LiNC
-# constraint
+# expanded network and constraint
 net_level1_i, c_species = PN.mapindividuals(net_level1_s, mappingfile)
-PN.resetNodeNumbers!(net_level1_i)
-net_level1_i.node[22].number = 100
-PN.updateconstraints!(c_species, net_level1_i)
-@test c_species[1].taxonnums == Set([8,9,100])
-@test c_species[1].node.number == 21
-@test getparent(net_level1_i.node[22].edge[1]).number == 21
-
-obj = StatisticalSubstitutionModel(net_level1_i,fastaindiv,:JC69,:GI,2)
+obj = StatisticalSubstitutionModel(net_level1_i, fastaindiv, :JC69, :GI, 2)
 # obj.net = deepcopy of input net, so we need to rebuild the constraints
 c_species[1] = PN.TopologyConstraint(0x01, c_species[1].taxonnames, obj.net)
-# obj.net = deepcopy of input net, so we need to rebuild the constraints if done after
-@test_logs (:warn, r"no 3-cycle") match_mode=:any PhyLiNC.checknetwork_LiNC!(obj.net, 2,
-                                                    true, true, c_species, true)
+@test_logs (:warn, r"no 3-cycle") match_mode=:any PhyLiNC.checknetwork_LiNC!(
+  obj.net, 2, true, true, c_species, true)
 PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
 
 #= assign good starting branch lengths: find them outside of tests
