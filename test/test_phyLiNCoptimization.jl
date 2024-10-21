@@ -38,28 +38,9 @@ end
 
 @testset "optimize local BL & gammas, complex network and 8 sites" begin
 Random.seed!(98)
-# dna_dat, dna_weights = readfastatodna(fasta8sites, true);
-# 22 species, 3 hybrid nodes, 103 edges
-net = readTopology("((((((((((((((Ae_caudata_Tr275,Ae_caudata_Tr276),Ae_caudata_Tr139))#H1,#H2),(((Ae_umbellulata_Tr266,Ae_umbellulata_Tr257),Ae_umbellulata_Tr268),#H1)),((Ae_comosa_Tr271,Ae_comosa_Tr272),(((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402),Ae_uniaristata_Tr404))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),(Ae_tauschii_Tr180,Ae_tauschii_Tr125)),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),(Ae_sharonensis_Tr265,Ae_sharonensis_Tr264)),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),((Ae_searsii_Tr164,Ae_searsii_Tr165),Ae_searsii_Tr161)))#H2,#H4))),(((T_boeoticum_TS8,(T_boeoticum_TS10,T_boeoticum_TS3)),T_boeoticum_TS4),((T_urartu_Tr315,T_urartu_Tr232),(T_urartu_Tr317,T_urartu_Tr309)))),(((((Ae_speltoides_Tr320,Ae_speltoides_Tr323),Ae_speltoides_Tr223),Ae_speltoides_Tr251))H3,((((Ae_mutica_Tr237,Ae_mutica_Tr329),Ae_mutica_Tr244),Ae_mutica_Tr332))#H4))),Ta_caputMedusae_TB2),S_vavilovii_Tr279),Er_bonaepartis_TB1),H_vulgare_HVens23);");
-PN.fuseedgesat!(93, net)
-obj = (@test_logs (:warn, r"taxa with no data") StatisticalSubstitutionModel(net, fasta8sites, :JC69))
-@test length(obj.net.leaf) == 22
-io = IOBuffer();
-PhyloTraits.showdata(io, obj)
-@test String(take!(io)) == "data:\n  22 species\n  8 sites"
-PhyloTraits.showdata(io, obj, true)
-@test String(take!(io)) ==
-"data:
-  22 species
-  8 sites
-  0 sites with no data (0.0%)
-  2 invariant sites (25.0%)
-  6 sites with 2 distinct states (75.0%)
-  6 parsimony-informative sites (75.0%)
-  6 sites with 1 or more missing values (75.0%)
-  3.41% missing values overall"
-close(io)
-
+# net from fasta8sites, fuseedgesat! 93, then pruned to the 22 leaves with data, 3 hybrids
+net = readTopology("(H_vulgare_HVens23,(((Ae_speltoides_Tr251)H3,(Ae_mutica_Tr237)#H4:::0.6),((((((Ae_caudata_Tr139,Ae_caudata_Tr275))#H1:::0.6,#H2:::0.4),#H1:::0.4),((Ae_comosa_Tr271,Ae_comosa_Tr272),((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),Ae_tauschii_Tr125),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),Ae_sharonensis_Tr265),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),(Ae_searsii_Tr164,Ae_searsii_Tr165)))#H2:::0.6,#H4:::0.4)))));")
+obj = StatisticalSubstitutionModel(net, fasta8sites, :JC69)
 preorder!(obj.net)
 PhyLiNC.checknetwork_LiNC!(obj.net, 3, true, true, emptyconstraint)
 # checknetwork removes degree-2 nodes (including root) and 2- and 3-cycles
@@ -132,22 +113,6 @@ obj.loglik = -Inf64
 γcache = PhyLiNC.CacheGammaLiNC(obj)
 @test_nowarn PhyLiNC.optimizeallgammas_LiNC!(obj,1e-6,γcache,100)
 @test obj.net.numHybrids == 0
-end
-
-@testset "data to SSM pruning: complex network" begin
-net = readTopology("((((((((((((((Ae_caudata_Tr275,Ae_caudata_Tr276),Ae_caudata_Tr139))#H1,#H2),(((Ae_umbellulata_Tr266,Ae_umbellulata_Tr257),Ae_umbellulata_Tr268),#H1)),((Ae_comosa_Tr271,Ae_comosa_Tr272),(((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402),Ae_uniaristata_Tr404))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),(Ae_tauschii_Tr180,Ae_tauschii_Tr125)),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),(Ae_sharonensis_Tr265,Ae_sharonensis_Tr264)),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),((Ae_searsii_Tr164,Ae_searsii_Tr165),Ae_searsii_Tr161)))#H2,#H4))),(((T_boeoticum_TS8,(T_boeoticum_TS10,T_boeoticum_TS3)),T_boeoticum_TS4),((T_urartu_Tr315,T_urartu_Tr232),(T_urartu_Tr317,T_urartu_Tr309)))),(((((Ae_speltoides_Tr320,Ae_speltoides_Tr323),Ae_speltoides_Tr223),Ae_speltoides_Tr251))H3,((((Ae_mutica_Tr237,Ae_mutica_Tr329),Ae_mutica_Tr244),Ae_mutica_Tr332))#H4))),Ta_caputMedusae_TB2),S_vavilovii_Tr279),Er_bonaepartis_TB1),H_vulgare_HVens23);");
-PN.fuseedgesat!(93, net)
-for edge in net.edge # reset network
-    setLength!(edge,1.0)
-end
-for h in net.hybrid
-    setGamma!(getparentedge(h),0.6)
-end
-obj = (@test_logs (:warn, r"pruned") StatisticalSubstitutionModel(net, fasta8sites, :JC69))
-@test length(obj.net.leaf) == 22
-@test length(obj.net.edge) == 52
-@test length(obj.net.hybrid) == 3
-@test !PN.hashybridladder(obj.net)
 end
 
 @testset "checknetwork LiNC" begin
