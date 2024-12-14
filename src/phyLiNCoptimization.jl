@@ -106,7 +106,7 @@ contains the estimated network in `obj.net`.
 Required arguments:
 - `net`: a network or tree of type `HybridNetwork`, to serve as a starting point
   in the search for the best network.
-  Newick strings can be converted to this format with `readTopology`.
+  Newick strings can be converted to this format with `readnewick`.
 - `fastafile`: file with the sequence data in FASTA format. Ambiguous states are
   treated as missing.
 - `substitutionModel`: A symbol indicating which substitution model is used.
@@ -218,7 +218,7 @@ function phyLiNC(
             rvsymbol, ratecategories; maxhybrid=maxhybrid)
     #= after SSM(), update constraint taxon names, taxonnums, edge, and node
        because some leaves may be pruned, and check_matchtaxonnames calls
-       resetNodeNumbers! (changing leaf node numbers) and resetEdgeNumbers! =#
+       resetnodenumbers! (changing leaf node numbers) and resetEdgeNumbers! =#
     for i in eachindex(constraints)
         constraints[i] = PN.TopologyConstraint(constraints[i].type,
                                             constraints[i].taxonnames, obj.net)
@@ -313,7 +313,7 @@ function phyLiNC!(
     io = IOBuffer();
     PhyloTraits.showdata(io, obj, true) # true for full site information
     str *= String(take!(io)) * "\n"; close(io)
-    str *= "\n$(nruns) run(s) starting near network topology:\n$(writeTopology(obj.net))\nstarting model:\n" *
+    str *= "\n$(nruns) run(s) starting near network topology:\n$(writenewick(obj.net))\nstarting model:\n" *
             replace(string(obj.model),     r"\n" => "\n  ") * "\n" *
             replace(string(obj.ratemodel), r"\n" => "\n  ") * "\n"
     # fixit: add info about constraints: type and tip names for each constraint
@@ -373,12 +373,12 @@ function phyLiNC!(
             logstr = "\nFINISHED. loglik = $(obj.loglik)\n"
             verbose && print(stdout, logstr)
             if writelog_1proc
-                logstr *= writeTopology(obj.net)
+                logstr *= writenewick(obj.net)
                 logstr *= "\n---------------------\n"
                 write(logfile, logstr)
                 flush(logfile)
             end
-            obj.net.loglik = obj.loglik
+            obj.net.fscore = obj.loglik
             return [obj.net, obj.model, obj.ratemodel]
         catch err
             msg = "\nERROR found on PhyLiNC for run $(i) seed $(seeds[i]):\n" *
@@ -408,13 +408,13 @@ function phyLiNC!(
       each item holds [net, model, ratemodel] if sucessful, nothing if failed =#
     filter!(n -> n !== nothing, netvector) # remove "nothing": failed runs
     !isempty(netvector) || error("all runs failed")
-    sort!(netvector, by = x -> x[1].loglik, rev=true)
-    # @debug "loglik from all runs:" [n[1].loglik for n in netvector]
+    sort!(netvector, by = x -> x[1].fscore, rev=true)
+    # @debug "loglik from all runs:" [n[1].fscore for n in netvector]
     obj.net = netvector[1][1]::HybridNetwork # best network, tell type to compiler
     obj.model = netvector[1][2]
     obj.ratemodel = netvector[1][3]
-    obj.loglik = obj.net.loglik
-    logstr = "Best topology:\n$(writeTopology(obj.net))\n" *
+    obj.loglik = obj.net.fscore
+    logstr = "Best topology:\n$(writenewick(obj.net))\n" *
               "with loglik $(obj.loglik) under:\n" *
               replace(string(obj.model),     r"\n" => "\n  ") * "\n" *
               replace(string(obj.ratemodel), r"\n" => "\n  ") *
@@ -437,13 +437,13 @@ function phyLiNC!(
         updateSSM!(obj, true; constraints=constraints)
         discrete_corelikelihood!(obj) # to get likelihood exact, even if not optimum
     end
-    obj.net.loglik = obj.loglik
+    obj.net.fscore = obj.loglik
     toptimend = time_ns() # in nanoseconds
     telapsed = round(convert(Int, toptimend-tstart) * 1e-9, digits=2) # in seconds
     logstr = """complete.
       final log-likelihood: $(obj.loglik)
       final network:
-      $(writeTopology(obj.net))
+      $(writenewick(obj.net))
       total time elapsed: $telapsed seconds (includes final branch length and gamma optimization)
       final time: $(Dates.format(Dates.now(), "yyyy-mm-dd H:M:S.s"))
       ---------------------
@@ -521,7 +521,7 @@ function phyLiNCone!(
         writelog_1proc && write(logfile, logstr)
         verbose && print(stdout, logstr)
     end
-    logstr = "starting at $(writeTopology(obj.net))\n"
+    logstr = "starting at $(writenewick(obj.net))\n"
     if writelog_1proc
         write(logfile, logstr)
         flush(logfile)
@@ -538,7 +538,7 @@ function phyLiNCone!(
              ftolRel=ftolRel, ftolAbs=ftolAbs, xtolRel=xtolRel, xtolAbs=xtolAbs,
              alphamin=alphamin,alphamax=alphamax, pinvmin=pinvmin,pinvmax=pinvmax)
         optimizealllengths_LiNC!(obj, lcache) # 1 edge at a time, random order
-        for i in Random.shuffle(1:obj.net.numHybrids)
+        for i in Random.shuffle(1:obj.net.numhybrids)
             e = getparentedge(obj.net.hybrid[i])
             optimizelocalgammas_LiNC!(obj, e, ftolAbs, γcache)
         end
@@ -584,7 +584,7 @@ julia> using PhyloNetworks
 
 julia> maxhybrid = 3;
 
-julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+julia> net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> preorder!(net) # for correct unzipping in checknetwork_LiNC!
 
@@ -606,8 +606,8 @@ function checknetwork_LiNC!(
     verbose::Bool=false
 )
     if maxhybrid > 0
-        net.numTaxa >= 3 ||
-            error("cannot estimate hybridizations in topologies with 3 or fewer tips: $(net.numTaxa) tips here.")
+        net.numtaxa >= 3 ||
+            error("cannot estimate hybridizations in topologies with 3 or fewer tips: $(net.numtaxa) tips here.")
     end
     # checks for polytomies, constraint violations, nodes of degree 2
     PN.checkspeciesnetwork!(net, constraints) ||
@@ -707,7 +707,7 @@ function optimizestructure!(
             result = nni_LiNC!(obj, no3cycle,  nohybridladder,
                                constraints, ftolAbs, γcache, lcache)
         elseif movechoice == "addhybrid"
-            nh = obj.net.numHybrids
+            nh = obj.net.numhybrids
             nh == maxhybrid && continue # skip & don't count towards nmoves if enough hybrids in net
             # alternative: switch "add" and "delete" as appropriate (not chosen)
             #              would decrease the weight of NNIs compared to add/delete hybrid
@@ -716,11 +716,11 @@ function optimizestructure!(
             result = addhybridedgeLiNC!(obj, currLik, no3cycle,
                         nohybridladder, constraints, ftolAbs, γcache, lcache)
         elseif movechoice == "deletehybrid"
-            obj.net.numHybrids == 0  && continue # skip & don't count towards nmoves if no hybrid in net
+            obj.net.numhybrids == 0  && continue # skip & don't count towards nmoves if no hybrid in net
             result = deletehybridedgeLiNC!(obj, currLik,
                         no3cycle, constraints, γcache, lcache)
         elseif movechoice == "fliphybrid"
-            obj.net.numHybrids == 0  && continue # skip & don't count towards nmoves if no hybrid in net
+            obj.net.numhybrids == 0  && continue # skip & don't count towards nmoves if no hybrid in net
             result = fliphybridedgeLiNC!(obj, currLik,
                         nohybridladder, constraints, ftolAbs, γcache, lcache)
         else # change root (doesn't affect likelihood)
@@ -820,7 +820,7 @@ function nni_LiNC!(
             for (i,e) in enumerate(savededges) # restore edge lengths and gammas
                 e.length = savedlen[i]
                 if e.hybrid
-                    setGamma!(e, savedgam[i]) # some hybrid partners are not adjacent to focus edge
+                    setgamma!(e, savedgam[i]) # some hybrid partners are not adjacent to focus edge
                 else
                     savedgam[i] == 1.0 || @warn "A tree edge had saved gamma != 1.0. Something fishy has happened."
                     e.gamma = 1.0 # savedgam[i] should be 1.0
@@ -869,7 +869,7 @@ function addhybridedgeLiNC!(
     savedlen = [e.length for e in obj.net.edge]
     savedgam = [e.gamma for e in obj.net.edge]
     result = addhybridedge!(obj.net, nohybridladder, no3cycle, constraints;
-                    maxattempts=max(10,size(obj.directlik,2)), fixroot=true) # maxattempt ~ numEdges
+                    maxattempts=max(10,size(obj.directlik,2)), fixroot=true) # maxattempt ~ numedges
     # fixroot=true: to restore edge2 if need be, with deletehybridedge!
         # so hybridpartnernew is always true. This means that the order of edges
         # in obj.net.edge can be restored by deletehybridedge below.
@@ -985,7 +985,7 @@ function deletehybridedgeLiNC!(
     # set γ to 0 to delete the hybrid edge: makes it easy to undo.
     # update minor edge, and prior log tree weights in obj
     γ0 = minorhybridedge.gamma
-    setGamma!(minorhybridedge, 0.0)
+    setgamma!(minorhybridedge, 0.0)
     l1mγ = log(1.0-γ0)
     nt, hase = updatecache_hase!(γcache, obj, minorhybridedge.number,
                                 getparentedge(hybridnode).number)
@@ -1014,7 +1014,7 @@ function deletehybridedgeLiNC!(
         return true
     else # keep hybrid
         majhyb.length = len0
-        setGamma!(minorhybridedge, γ0)
+        setgamma!(minorhybridedge, γ0)
         # note: transition probability for majhyb not updated here, but could be
         #       if we wanted to avoid full update before each branch length optim
         updateSSM_priorltw!(obj) # displayedtree already correct
@@ -1081,7 +1081,7 @@ function fliphybridedgeLiNC!(
     # but: no point in optimizing the length of such an edge. optimizelocalBL_LiNC won't.
     optimizelocalBL_LiNC!(obj, flippededge, lcache)
     if obj.loglik < currLik # then: undo the move
-        fliphybrid!(obj.net, newhybridnode, !flippededge.isMajor, nohybridladder, constraints)
+        fliphybrid!(obj.net, newhybridnode, !flippededge.ismajor, nohybridladder, constraints)
         obj.displayedtree = saveddisplayedtree # restore displayed trees and weights
         obj.priorltw = savedpriorltw
         obj.loglik = currLik # restore to loglik before move
@@ -1118,7 +1118,7 @@ Does not update the likelihood.
 ```jldoctest
 julia> using PhyloNetworks
 
-julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+julia> net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));
 
@@ -1130,7 +1130,7 @@ julia> using Random; Random.seed!(432);
 
 julia> PhyloNetworks.addhybridedge!(obj.net, obj.net.edge[8], obj.net.edge[1], true, 0.0, 0.4);
 
-julia> writeTopology(obj.net)
+julia> writenewick(obj.net)
 "(((B:1.0)#H1:0.1::0.9,(A:1.0)#H2:1.0::0.6):1.5,(C:0.6,#H1:1.0::0.1):1.0,(D:1.25,#H2:0.0::0.4):1.25);"
 
 julia> length(obj.displayedtree) # still as if 1 single reticulation
@@ -1148,24 +1148,24 @@ function updateSSM!(
     constraints=TopologyConstraint[]::Vector{TopologyConstraint}
 )
     if renumber # traits are in leaf.number order, so leaf nodes not reordered
-        PN.resetNodeNumbers!(obj.net; checkPreorder=false, type=:internalonly)
+        PN.resetnodenumbers!(obj.net; checkpreorder=false, type=:internalonly)
             # preorder not used when type = internalonly
-        PN.resetEdgeNumbers!(obj.net, false) # verbose=false
+        PN.resetedgenumbers!(obj.net, false) # verbose=false
         PN.updateconstraintfields!(constraints, obj.net)
     end
     # extract displayed trees, with the default keeporiginalroot=false
     # because PhyLiNC assumes a reversible model and moves the root around:
     # displayed trees should not have any dangling node nor root of degree 1
     # (which are equivalent via re-rooting)
-    obj.displayedtree = displayedTrees(obj.net, 0.0; nofuse=true)
+    obj.displayedtree = displayedtrees(obj.net, 0.0; nofuse=true)
     for tree in obj.displayedtree
-        preorder!(tree) # no need to call directEdges!: already correct in net
+        preorder!(tree) # no need to call directedges!: already correct in net
     end
     # log tree weights: sum log(γ) over edges, for each displayed tree
     updateSSM_priorltw!(obj)
     @debug begin
         all(!ismissing, obj.priorltw) ? "" :
-        "one or more inheritance γ's are missing or negative. fix using setGamma!(network, edge)"
+        "one or more inheritance γ's are missing or negative. fix using setgamma!(network, edge)"
     end
     return obj
 end
@@ -1206,7 +1206,7 @@ Update root and direction of edges in displayed trees to match
 the root in the network.
 """
 function updateSSM_root!(obj::SSM)
-    netroot = obj.net.node[obj.net.root]
+    netroot = getroot(obj.net)
     rnum = netroot.number
     rootabsent = false
     # The new root may have been a dangling node in one of the displayed trees,
@@ -1219,14 +1219,14 @@ function updateSSM_root!(obj::SSM)
             rootabsent = true
             break
         end
-        tre.root = r
-        directEdges!(tre)
+        tre.rooti = r
+        directedges!(tre)
         preorder!(tre)
     end
     if rootabsent # then re-create all displayed trees: will be corrected rooted
-        obj.displayedtree = displayedTrees(obj.net, 0.0; nofuse=true)
+        obj.displayedtree = displayedtrees(obj.net, 0.0; nofuse=true)
         for tree in obj.displayedtree
-            preorder!(tree) # no need to call directEdges!: already correct in net
+            preorder!(tree) # no need to call directedges!: already correct in net
         end
         # After re-extracting, the displayed trees come in the same order as before:
         # no need to update the priorltw
@@ -1419,7 +1419,7 @@ Assumptions:
 ```jldoctest
 julia> using PhyloNetworks
 
-julia> net = readTopology("(((A:2.0,(B:0.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+julia> net = readnewick("(((A:2.0,(B:0.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));
 
@@ -1439,7 +1439,7 @@ julia> PhyLiNC.optimizelocalBL_LiNC!(obj, e, PhyLiNC.CacheLengthLiNC(obj, 1e-6,1
 julia> round(e.length, sigdigits=6) # we get the lower bound from PhyLiNC in this case
 1.0e-8
 
-julia> writeTopology(obj.net; round=true)
+julia> writenewick(obj.net; round=true)
 "(((A:0.338,(B:0.0)#H1:0.04::0.9):0.0,(C:0.6,#H1:1.0::0.1):0.0):0.0,D:2.0);"
 
 ```
@@ -1616,7 +1616,7 @@ function optimizeallgammas_LiNC!(
     maxeval::Int
 )
     hybnodes = obj.net.hybrid
-    nh = length(hybnodes)      # also = obj.net.numHybrids
+    nh = length(hybnodes)      # also = obj.net.numhybrids
     if nh==0 return false; end # no gammas to optimize
     hybs = [getparentedgeminor(h) for h in hybnodes]
     discrete_corelikelihood!(obj) # prerequisite for optimizegamma_LiNC!
@@ -1662,13 +1662,13 @@ log-likelihood falls below `ftolAbs`.
 Used after `nni!` or `addhybridedge!` moves to update local gammas.
 
 Assumptions:
-- correct `isChild1` field for `edge` and for hybrid edges
+- correct `ischild1` field for `edge` and for hybrid edges
 - no in-coming polytomy: a node has 0, 1 or 2 parents, no more
 
 ```jldoctest
 julia> using PhyloNetworks
 
-julia> net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+julia> net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 
 julia> fastafile = abspath(joinpath(dirname(Base.find_package("PhyLiNC")), "..", "examples", "simple.aln"));
 
@@ -1706,7 +1706,7 @@ function optimizelocalgammas_LiNC!(
     #       by their minor partner if not already in the list
     for i in length(neighborhybs):-1:1
         e = neighborhybs[i]
-        e.isMajor || continue # skip below for minor edges
+        e.ismajor || continue # skip below for minor edges
         p = getpartneredge(e) # minor partner
         j = findfirst(x -> x===p, neighborhybs)
         if isnothing(j)
@@ -1786,14 +1786,14 @@ function optimizegamma_LiNC!(
     if γ0<1e-7 # then prior weight and loglikcachetoo small (-Inf if γ0=0)
         # @debug "γ0 too small ($γ0): was changed to 1e-7 prior to optimization"
         γ0 = 1e-7
-        setGamma!(focusedge, γ0)
+        setgamma!(focusedge, γ0)
         updatedisplayedtrees!(obj.displayedtree, edgenum, partnernum, γ0, hase)
         updateSSM_priorltw!(obj)
         discrete_corelikelihood!(obj) # to update obj._loglikcache
     elseif γ0>0.9999999
         # @debug "γ0 too large ($γ0): was changed to 1 - 1e-7 prior to optimization"
         γ0 = 0.9999999
-        setGamma!(focusedge, γ0)
+        setgamma!(focusedge, γ0)
         updatedisplayedtrees!(obj.displayedtree, edgenum, partnernum, γ0, hase)
         updateSSM_priorltw!(obj)
         discrete_corelikelihood!(obj) # to update obj._loglikcache
@@ -1881,9 +1881,9 @@ function optimizegamma_LiNC!(
     focusedge.gamma = γ
     partner.gamma = 1.0 - γ
     newmajor = γ > 0.5
-    if newmajor != focusedge.isMajor
-        focusedge.isMajor = newmajor
-        partner.isMajor = !newmajor
+    if newmajor != focusedge.ismajor
+        focusedge.ismajor = newmajor
+        partner.ismajor = !newmajor
         # fixit: check clade constraints. perhaps at the start:
         # if this was problematic for constraints, restrict the search
         # to interval [0,0.5] or [0.5,1] as appropriate

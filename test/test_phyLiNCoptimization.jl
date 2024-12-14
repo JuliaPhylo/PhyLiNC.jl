@@ -17,7 +17,7 @@ emptyconstraint = PN.TopologyConstraint[]
 
 @testset "optimize local BL & gammas, simple example" begin
 Random.seed!(99)
-net_simple = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
+net_simple = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
 obj = StatisticalSubstitutionModel(net_simple, fastasimple, :JC69)
 
 ## Local BL
@@ -39,7 +39,7 @@ end
 @testset "optimize local BL & gammas, complex network and 8 sites" begin
 Random.seed!(98)
 # net from fasta8sites, fuseedgesat! 93, then pruned to the 22 leaves with data, 3 hybrids
-net = readTopology("(H_vulgare_HVens23,(((Ae_speltoides_Tr251)H3,(Ae_mutica_Tr237)#H4:::0.6),((((((Ae_caudata_Tr139,Ae_caudata_Tr275))#H1:::0.6,#H2:::0.4),#H1:::0.4),((Ae_comosa_Tr271,Ae_comosa_Tr272),((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),Ae_tauschii_Tr125),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),Ae_sharonensis_Tr265),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),(Ae_searsii_Tr164,Ae_searsii_Tr165)))#H2:::0.6,#H4:::0.4)))));")
+net = readnewick("(H_vulgare_HVens23,(((Ae_speltoides_Tr251)H3,(Ae_mutica_Tr237)#H4:::0.6),((((((Ae_caudata_Tr139,Ae_caudata_Tr275))#H1:::0.6,#H2:::0.4),#H1:::0.4),((Ae_comosa_Tr271,Ae_comosa_Tr272),((Ae_uniaristata_Tr403,Ae_uniaristata_Tr357),Ae_uniaristata_Tr402))),(((Ae_tauschii_Tr352,Ae_tauschii_Tr351),Ae_tauschii_Tr125),(((((((Ae_longissima_Tr241,Ae_longissima_Tr242),Ae_longissima_Tr355),Ae_sharonensis_Tr265),((Ae_bicornis_Tr408,Ae_bicornis_Tr407),Ae_bicornis_Tr406)),(Ae_searsii_Tr164,Ae_searsii_Tr165)))#H2:::0.6,#H4:::0.4)))));")
 obj = StatisticalSubstitutionModel(net, fasta8sites, :JC69)
 preorder!(obj.net)
 PhyLiNC.checknetwork_LiNC!(obj.net, 3, true, true, emptyconstraint)
@@ -72,7 +72,7 @@ lengthe = obj.net.edge[44].length
 
 # gamma at a hybrid ladder: when some displayed trees don't have the focus edge
 # 2 unzipped reticulations in a hybrid ladder, reasonable (small) branch lengths
-net = readTopology("(#H2:0.0001::0.0244,((C:0.0262,((B:0.0)#H1:0.0::0.6)#H2:0.03::0.9756):0.4812,(#H1:0.0001::0.4,A:0.1274):0.0001):0.0274,D:0.151);")
+net = readnewick("(#H2:0.0001::0.0244,((C:0.0262,((B:0.0)#H1:0.0::0.6)#H2:0.03::0.9756):0.4812,(#H1:0.0001::0.4,A:0.1274):0.0001):0.0274,D:0.151);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
 obj.trait[1][3] = 3 # to create discordance across sites
 obj.trait[4][4] = 2 #    for estimated γ to be within (0,1)
@@ -93,9 +93,9 @@ end #of local branch length and gamma optimization with localgamma! localBL! wit
 
 @testset "global branch length and gamma optimization" begin
 # to run locally on complex network:
-# net = readTopology("(H_vulgare_HVens23:0.5,(((Ae_speltoides_Tr251:0.5):0.5,(Ae_mutica_Tr237:0.0)#H4:1.0::0.7):0.5,((((((Ae_caudata_Tr139:0.5,Ae_caudata_Tr275:0.5):0.0)#H1:1.0::0.7,#H2:1.0::0.3):0.5,#H1:1.0::0.3):0.5,((Ae_comosa_Tr271:0.5,Ae_comosa_Tr272:0.5):0.5,((Ae_uniaristata_Tr403:0.5,Ae_uniaristata_Tr357:0.5):0.5,Ae_uniaristata_Tr402:0.5):0.5):0.5):0.5,(((Ae_tauschii_Tr352:0.5,Ae_tauschii_Tr351:0.5):0.5,Ae_tauschii_Tr125:0.5):0.5,(((((((Ae_longissima_Tr241:0.5,Ae_longissima_Tr242:0.5):0.5,Ae_longissima_Tr355:0.5):0.5,Ae_sharonensis_Tr265:0.5):0.5,((Ae_bicornis_Tr408:0.5,Ae_bicornis_Tr407:0.5):0.5,Ae_bicornis_Tr406:0.5):0.5):0.5,(Ae_searsii_Tr164:0.5,Ae_searsii_Tr165:0.5):0.5):0.0)#H2:1.0::0.7,#H4:1.0::0.3):0.5):0.5):0.5):0.5);");
+# net = readnewick("(H_vulgare_HVens23:0.5,(((Ae_speltoides_Tr251:0.5):0.5,(Ae_mutica_Tr237:0.0)#H4:1.0::0.7):0.5,((((((Ae_caudata_Tr139:0.5,Ae_caudata_Tr275:0.5):0.0)#H1:1.0::0.7,#H2:1.0::0.3):0.5,#H1:1.0::0.3):0.5,((Ae_comosa_Tr271:0.5,Ae_comosa_Tr272:0.5):0.5,((Ae_uniaristata_Tr403:0.5,Ae_uniaristata_Tr357:0.5):0.5,Ae_uniaristata_Tr402:0.5):0.5):0.5):0.5,(((Ae_tauschii_Tr352:0.5,Ae_tauschii_Tr351:0.5):0.5,Ae_tauschii_Tr125:0.5):0.5,(((((((Ae_longissima_Tr241:0.5,Ae_longissima_Tr242:0.5):0.5,Ae_longissima_Tr355:0.5):0.5,Ae_sharonensis_Tr265:0.5):0.5,((Ae_bicornis_Tr408:0.5,Ae_bicornis_Tr407:0.5):0.5,Ae_bicornis_Tr406:0.5):0.5):0.5,(Ae_searsii_Tr164:0.5,Ae_searsii_Tr165:0.5):0.5):0.0)#H2:1.0::0.7,#H4:1.0::0.3):0.5):0.5):0.5):0.5);");
 # obj = StatisticalSubstitutionModel(net, fasta8sites, :JC69);
-net = readTopology("(((A:0.5,(B:0.0)#H1:1.0::0.9):0.5,(C:0.5,#H1:1.0::0.1):0.5):0.5,D:0.5);")
+net = readnewick("(((A:0.5,(B:0.0)#H1:1.0::0.9):0.5,(C:0.5,#H1:1.0::0.1):0.5):0.5,D:0.5);")
 # branch lengths set to 0.5, then unzipped -> some BL are 0, some 1, most 0.5
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69);
 
@@ -112,49 +112,49 @@ obj.loglik = -Inf64
 ## optimizegammas -- and delete hybrid edges with γ=0
 γcache = PhyLiNC.CacheGammaLiNC(obj)
 @test_nowarn PhyLiNC.optimizeallgammas_LiNC!(obj,1e-6,γcache,100)
-@test obj.net.numHybrids == 0
+@test obj.net.numhybrids == 0
 end
 
 @testset "checknetwork LiNC" begin
-tree = readTopology("(A:3.0,(B:2.0,(C:1.0,D:1.0):1.0):1.0);");
+tree = readnewick("(A:3.0,(B:2.0,(C:1.0,D:1.0):1.0):1.0);");
 @test any(length(n.edge) == 2 for n in tree.node) # one node of degree 2
 preorder!(tree)
 PhyLiNC.checknetwork_LiNC!(tree, 1, true, true)
 @test all(length(n.edge) != 2 for n in tree.node) # no nodes of degree 2
-net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
+net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
 @test_throws ErrorException PhyLiNC.checknetwork_LiNC!(net, 0, true, true)
 end
 
 @testset "update root in SSM displayed trees" begin
 # W structure
-net = readTopology("(C:0.0262,(B:0.0)#H2:0.03::0.9756,(((D:0.1,A:0.1274):0.0)#H1:0.0::0.6,(#H2:0.0001::0.0244,#H1:0.151::0.4):0.0274):0.4812);")
+net = readnewick("(C:0.0262,(B:0.0)#H2:0.03::0.9756,(((D:0.1,A:0.1274):0.0)#H1:0.0::0.6,(#H2:0.0001::0.0244,#H1:0.151::0.4):0.0274):0.4812);")
 # "((C:0.0262,(B:0.0)#H2:0.03::0.9756):0.4812,((D:0.1,A:0.1274):0.0)#H1:0.0::0.6,(#H2:0.0001::0.0244,#H1:0.151::0.4):0.0274);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
-@test [t.node[t.root].number for t in obj.displayedtree] == [5,5,5,5]
+@test [getroot(t).number for t in obj.displayedtree] == [5,5,5,5]
 # obj.displayedtree[1]: (C:0.026,(B:0.0):0.03,(((D:0.1,A:0.127):0.0):0.0):0.481);
 # move the root to place the W structure at the root:
 # the network's root node will be missing from some displayed trees.
 rootatnode!(obj.net, 7) # node 7 = tree node whose 2 children are both hybrids
 # "(#H2:0.0001::0.0244,((C:0.0262,(B:0.0)#H2:0.03::0.9756):0.4812,((D:0.1,A:0.1274):0.0)#H1:0.0::0.6):0.0274,#H1:0.151);"
 PhyLiNC.updateSSM_root!(obj) # re-root displayed trees in the same way
-@test [t.node[t.root].number for t in obj.displayedtree] == [6,7,7,7]
-@test writeTopology(obj.displayedtree[1]) == "(((D:0.1,A:0.1274):0.0)H1:0.0,(C:0.0262,(B:0.0)H2:0.03):0.4812);"
+@test [getroot(t).number for t in obj.displayedtree] == [6,7,7,7]
+@test writenewick(obj.displayedtree[1]) == "(((D:0.1,A:0.1274):0.0)H1:0.0,(C:0.0262,(B:0.0)H2:0.03):0.4812);"
 end
 
 @testset "skip γ and lengths optimization when needed" begin
 # W structure, with middle γs = 0
-net = readTopology("(C:0.0262,(B:0.0)#H2:0.03::1,(((D:0.1,A:0.1274):0.0)#H1:0.004::1,(#H2:0.0001,#H1:0.151):0.0274):0.4812);")
+net = readnewick("(C:0.0262,(B:0.0)#H2:0.03::1,(((D:0.1,A:0.1274):0.0)#H1:0.004::1,(#H2:0.0001,#H1:0.151):0.0274):0.4812);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
-for i in [8,9] setGamma!(obj.net.edge[i], 0.0); end
+for i in [8,9] setgamma!(obj.net.edge[i], 0.0); end
 PhyLiNC.updateSSM!(obj)
 lcache = PhyLiNC.CacheLengthLiNC(obj, 1e-6,1e-6,1e-2,1e-3, 5);
 e = PhyLiNC.optimizelocalBL_LiNC!(obj, obj.net.edge[10], lcache)
 @test length(e) == 3 # not 5: the 2 edges with γ = 0 were excluded
 @test obj.net.edge[10].length == 0.0274
 # hybrid ladder, with lower γ = 0
-net = readTopology("(#H2:0.0001::0.0244,((C:0.0262,((B:0.0)#H1:0.0::0.6)#H2:0.03::0.9756):0.4812,(#H1:0.0001::0.4,A:0.1274):0.0001):0.0274,D:0.151);")
+net = readnewick("(#H2:0.0001::0.0244,((C:0.0262,((B:0.0)#H1:0.0::0.6)#H2:0.03::0.9756):0.4812,(#H1:0.0001::0.4,A:0.1274):0.0001):0.0274,D:0.151);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
-setGamma!(obj.net.edge[4], 0.0); PhyLiNC.updateSSM!(obj)
+setgamma!(obj.net.edge[4], 0.0); PhyLiNC.updateSSM!(obj)
 e = PhyLiNC.optimizelocalBL_LiNC!(obj, obj.net.edge[5], lcache)
 @test length(e) == 4
 @test [obj.net.edge[i].length for i in [1,5]] == [0.0001, 0.03]
@@ -165,15 +165,15 @@ end
 
 @testset "optimizestructure with simple example" begin
 #= network pre-processing: resulting net hard-coded below.
-net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
+net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69; maxhybrid=1)
 PhyLiNC.checknetwork_LiNC!(obj.net, 1, true, true)
 PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
 PN.startingBL!(obj.net, obj.trait, obj.siteweight)
 PN.unzip_canonical!(obj.net)
-writeTopology(obj.net)
+writenewick(obj.net)
 =#
-net = readTopology("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
+net = readnewick("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69; maxhybrid=1)
 discrete_corelikelihood!(obj)
 @test obj.loglik ≈ -29.7762035
@@ -194,17 +194,17 @@ end # of optimizestructure with simple example
 
 @testset "phyLiNCone with simple net, no constraints" begin
 no3cycle = true
-net = readTopology("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
+net = readnewick("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
 seed = 102
 for nohybridladder in [true, false]
     #=
-    net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+    net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
     obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
     PhyLiNC.checknetwork_LiNC!(obj.net, 1, no3cycle, nohybridladder)
     PhyLiNC.updateSSM!(obj, true; constraints=emptyconstraint)
     PN.startingBL!(obj.net, obj.trait, obj.siteweight)
     PN.unzip_canonical!(obj.net)
-    writeTopology(obj.net) # result hard-coded above. independent of nohybridladder
+    writenewick(obj.net) # result hard-coded above. independent of nohybridladder
     =#
     obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
     obj.loglik = -Inf # missing otherwise, which would cause an error below
@@ -220,12 +220,12 @@ end
 end
 
 @testset "phyLiNC no constraints: HKY, rate variation" begin
-net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 obj = @test_nowarn phyLiNC(net, fastasimple, :JC69, :G, 2; maxhybrid=2, # no missing BLs, so they're not re-estimated
                     no3cycle=true, nohybridladder=true, maxmoves=2,
                     nreject=1, nruns=1, filename="", verbose=false, seed=108)
 @test obj.loglik > -27.5 # depends on RNG. -27.4 with julia 1.5, -27.27 earlier
-net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 obj = @test_nowarn phyLiNC(net, fastasimple, :HKY85; maxhybrid=2,
                     no3cycle=true, nohybridladder=true, maxmoves=2, probST=1.0, # not enough moves to get back to a good topology
                     nreject=1, nruns=1, filename="phyLiNC2", verbose=false, seed=0)
@@ -235,7 +235,7 @@ obj = @test_nowarn phyLiNC(net, fastasimple, :HKY85; maxhybrid=2,
 rm("phyLiNC2.log")
 rm("phyLiNC2.err")
 
-net = readTopology("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
+net = readnewick("(((A:2.0,(B:1.0)#H1:0.1::0.9):1.5,(C:0.6,#H1:1.0::0.1):1.0):0.5,D:2.0);");
 addprocs(1) # multiple cores
 @everywhere using PhyLiNC
 #using Distributed; @everywhere begin; using Pkg; Pkg.activate("."); using PhyloNetworks; end
@@ -251,7 +251,7 @@ rmprocs(workers()) # remove extra processors
 rm("phyLiNCmult.log")
 
 # phyLiNC w/ maxhybrid = 0
-net_h0 = readTopology("(((A:2.0,B:1.0):1.5,C:0.6):0.5,D:2.0);");
+net_h0 = readnewick("(((A:2.0,B:1.0):1.5,C:0.6):0.5,D:2.0);");
 obj = @test_nowarn phyLiNC(net_h0, fastasimple, :JC69, :G, 2; maxhybrid=0,
                     no3cycle=true, nohybridladder=true, maxmoves=2,
                     nreject=1, nruns=1, filename="", verbose=false, seed=115)
@@ -259,7 +259,7 @@ obj = @test_nowarn phyLiNC(net_h0, fastasimple, :JC69, :G, 2; maxhybrid=0,
 end
 
 @testset "phyLiNC with simple net and one constraint" begin
-net_level1_s = readTopology("(((S8,S9),((((S1,S4),(S5)#H1),(#H1,(S6,S7))))#H2),(#H2,S10));") # S1A S1B S1C go on leaf 1
+net_level1_s = readnewick("(((S8,S9),((((S1,S4),(S5)#H1),(#H1,(S6,S7))))#H2),(#H2,S10));") # S1A S1B S1C go on leaf 1
 # 3-cycle at degree-2 root -> 2-cycle after root deletion, removed within LiNC
 # expanded network and constraint
 net_level1_i, c_species = PN.mapindividuals(net_level1_s, mappingfile)
@@ -311,7 +311,7 @@ no3cycle = true
 # nohybridladder = true w/ simple 1 hybrid starting network
 Random.seed!(123)
 # below: net already checked for PhyLiNC, startingBL and unzipped
-net = readTopology("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
+net = readnewick("((A:0.3399824481995197,(B:0.0)#H1:0.08353360676474617::0.9):0.0001,(C:0.0001,#H1:0.048844990600034506::0.1):0.10871530327558311,D:0.33998306091744424);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
 obj.loglik = -Inf # loglik missing otherwise, which would cause an error below
 γcache = PhyLiNC.CacheGammaLiNC(obj)
@@ -324,7 +324,7 @@ lcache = PhyLiNC.CacheLengthLiNC(obj, 1e-6,1e-6,1e-2,1e-3, 5)
 # nohybridladder = false w/ hybrid ladder starting network
 Random.seed!(2)
 # below: net already checked for PhyLiNC and unzipped
-net = readTopology("(#H2:0.02495259889870113::0.0244,((C:1e-4,((B:0.0)#H1:0.0::0.6)#H2:0.034190897863530335::0.9756):0.24434924848805456,(#H1:0.01539513240840275::0.4,A:0.2864250860992079):1.0e-8):1e-4,D:0.2716998373895161);")
+net = readnewick("(#H2:0.02495259889870113::0.0244,((C:1e-4,((B:0.0)#H1:0.0::0.6)#H2:0.034190897863530335::0.9756):0.24434924848805456,(#H1:0.01539513240840275::0.4,A:0.2864250860992079):1.0e-8):1e-4,D:0.2716998373895161);")
 obj = StatisticalSubstitutionModel(net, fastasimple, :JC69)
 obj.loglik = -Inf # loglik missing otherwise, which would cause an error below
 γcache = PhyLiNC.CacheGammaLiNC(obj);
